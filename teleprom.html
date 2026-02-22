@@ -170,6 +170,12 @@
       border-radius: 12px;
       cursor: pointer;
       transition: background 0.3s;
+      border: none;
+      outline: none;
+    }
+
+    .toggle:focus-visible {
+      box-shadow: 0 0 0 2px var(--accent);
     }
 
     .toggle.active {
@@ -198,6 +204,7 @@
       position: relative;
       overflow: hidden;
       background: #000;
+      touch-action: none;
     }
 
     .script-display {
@@ -442,8 +449,13 @@
     </div>
 
     <div class="control-group">
-      <span class="control-label">Color</span>
+      <span class="control-label">Texto</span>
       <input type="color" id="colorControl" value="#ffffff" onchange="changeColor(this.value)">
+    </div>
+
+    <div class="control-group">
+      <span class="control-label">Fondo</span>
+      <input type="color" id="bgControl" value="#000000" onchange="changeBgColor(this.value)">
     </div>
 
     <button class="secondary" onclick="openEditor()">
@@ -547,6 +559,7 @@
         speed,
         fontSize: sizeControl.value,
         color: colorControl.value,
+        bgColor: document.getElementById('bgControl').value,
         isMirrored,
         isFlipped,
         script: scriptDisplay.innerText
@@ -574,6 +587,10 @@
 
         colorControl.value = settings.color || '#ffffff';
         scriptDisplay.style.color = colorControl.value;
+
+        const bgInput = document.getElementById('bgControl');
+        bgInput.value = settings.bgColor || '#000000';
+        displayContainer.style.background = bgInput.value;
 
         isMirrored = settings.isMirrored || false;
         document.getElementById('mirrorToggle').classList.toggle('active', isMirrored);
@@ -676,18 +693,17 @@
       const deltaTime = (currentTime - lastTime) / 1000;
       lastTime = currentTime;
 
-      // Speed 30 in the old version was approx 3px per frame (at 60fps)
-      // 3px * 60fps = 180px per second. So we multiplier by 6.
       position += speed * 6 * deltaTime;
       updateTransform();
 
-      // Update progress
-      const totalHeight = scriptDisplay.scrollHeight - window.innerHeight;
-      const progress = Math.min((position / totalHeight) * 100, 100);
+      // Update progress using accurate height
+      const scrollGap = window.innerHeight;
+      const textHeight = scriptDisplay.scrollHeight - (1.5 * scrollGap);
+      const progress = Math.min((position / Math.max(1, textHeight)) * 100, 100);
       progressBar.style.width = progress + '%';
 
-      // Auto-stop at end
-      if (position >= scriptDisplay.scrollHeight) {
+      // Auto-stop when last line passes the center
+      if (position >= textHeight + 10) {
         togglePlay();
         return;
       }
@@ -707,11 +723,18 @@
       isMirrored = !isMirrored;
       toggle.classList.toggle('active', isMirrored);
       updateTransform();
+      saveToLocalStorage();
     }
 
     function flipDisplay() {
       isFlipped = !isFlipped;
       updateTransform();
+      saveToLocalStorage();
+    }
+
+    function changeBgColor(color) {
+      displayContainer.style.background = color;
+      saveToLocalStorage();
     }
 
     function changeColor(color) {
@@ -849,6 +872,27 @@
     document.addEventListener('mouseup', () => {
       isDragging = false;
       displayContainer.style.cursor = 'default';
+    });
+
+    // Touch support for dragging
+    displayContainer.addEventListener('touchstart', (e) => {
+      if (!isPlaying) {
+        isDragging = true;
+        lastY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    displayContainer.addEventListener('touchmove', (e) => {
+      if (isDragging && !isPlaying) {
+        const delta = e.touches[0].clientY - lastY;
+        position = Math.max(0, position - delta * 2);
+        updateTransform();
+        lastY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    displayContainer.addEventListener('touchend', () => {
+      isDragging = false;
     });
 
     // Close modal on overlay click
