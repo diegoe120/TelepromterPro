@@ -101,12 +101,12 @@
       transform: translateY(0);
     }
 
-    button.secondary {
-      background: rgba(255, 255, 255, 0.1);
-    }
-
     button.secondary:hover {
       background: rgba(255, 255, 255, 0.2);
+    }
+
+    button.icon-only {
+      padding: 0.6rem;
     }
 
     button.danger {
@@ -196,6 +196,59 @@
 
     .toggle.active::after {
       transform: translateX(24px);
+    }
+
+    /* Dropdown Settings Menu */
+    .dropdown {
+      position: relative;
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: 120%;
+      right: 0;
+      background: var(--bg-panel);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 1rem;
+      width: 280px;
+      display: none;
+      flex-direction: column;
+      gap: 1rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      z-index: 200;
+    }
+
+    .dropdown-menu.active {
+      display: flex;
+    }
+
+    .dropdown-section-title {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.25rem;
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .dropdown-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .dropdown button {
+      width: 100%;
+      justify-content: center;
     }
 
     /* Main Display Area */
@@ -443,39 +496,52 @@
       <span class="value-display" id="sizeValue">48</span>
     </div>
 
-    <div class="control-group">
-      <span class="control-label">Espejo</span>
-      <div class="toggle" id="mirrorToggle" onclick="toggleMirror()"></div>
-    </div>
-
-    <div class="control-group">
-      <span class="control-label">Texto</span>
-      <input type="color" id="colorControl" value="#ffffff" onchange="changeColor(this.value)">
-    </div>
-
-    <div class="control-group">
-      <span class="control-label">Fondo</span>
-      <input type="color" id="bgControl" value="#000000" onchange="changeBgColor(this.value)">
-    </div>
-
-    <button class="secondary" onclick="openEditor()">
-      ✏️ Editar Texto
-    </button>
-
-    <button class="secondary" onclick="flipDisplay()">
-      ↕️ Flip Vertical
-    </button>
-
-    <div class="control-group">
-      <button class="secondary" style="padding: 0.4rem 0.8rem; background: transparent;" onclick="exportScript()"
-        title="Exportar a archivo">
-        📥 Exportar
+    <div class="dropdown">
+      <button id="settingsBtn" class="secondary" onclick="toggleDropdown(event)">
+        ⚙️ Ajustes
       </button>
-      <button class="secondary" style="padding: 0.4rem 0.8rem; background: transparent;" onclick="triggerFileImport()"
-        title="Cargar desde archivo">
-        📤 Cargar
-      </button>
-      <input type="file" id="fileInput" style="display: none;" accept=".txt,.docx" onchange="importScript(event)">
+      <div class="dropdown-menu" id="settingsMenu">
+        <div class="dropdown-section">
+          <div class="dropdown-section-title">Visualización</div>
+          <div class="dropdown-item">
+            <span class="control-label">Espejo Horizontal</span>
+            <div class="toggle" id="mirrorToggle" onclick="toggleMirror()"></div>
+          </div>
+          <div class="dropdown-item" style="margin-top: 0.5rem;">
+            <button class="secondary icon-only" onclick="flipDisplay()" title="Flip Vertical">
+              ↕️ Flip Vertical
+            </button>
+          </div>
+        </div>
+
+        <div class="dropdown-section">
+          <div class="dropdown-section-title">Colores</div>
+          <div class="dropdown-item">
+            <span class="control-label">Texto</span>
+            <input type="color" id="colorControl" value="#ffffff" onchange="changeColor(this.value)">
+          </div>
+          <div class="dropdown-item">
+            <span class="control-label">Fondo</span>
+            <input type="color" id="bgControl" value="#000000" onchange="changeBgColor(this.value)">
+          </div>
+        </div>
+
+        <div class="dropdown-section">
+          <div class="dropdown-section-title">Guion y Archivos</div>
+          <button class="secondary" onclick="openEditor()" style="margin-bottom: 0.5rem;">
+            ✏️ Editar Texto
+          </button>
+          <div class="dropdown-actions">
+            <button class="secondary" onclick="exportScript()" title="Exportar a archivo">
+              📥 Exportar
+            </button>
+            <button class="secondary" onclick="triggerFileImport()" title="Cargar desde archivo">
+              📤 Cargar
+            </button>
+          </div>
+          <input type="file" id="fileInput" style="display: none;" accept=".txt,.docx" onchange="importScript(event)">
+        </div>
+      </div>
     </div>
   </div>
 
@@ -662,6 +728,20 @@
       // Reset input value to allow re-importing same file
       event.target.value = '';
     }
+
+    function toggleDropdown(e) {
+      e.stopPropagation();
+      document.getElementById('settingsMenu').classList.toggle('active');
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('settingsMenu');
+      const btn = document.getElementById('settingsBtn');
+      if (!menu.contains(e.target) && e.target !== btn) {
+        menu.classList.remove('active');
+      }
+    });
 
     function togglePlay() {
       isPlaying = !isPlaying;
