@@ -449,9 +449,41 @@
       justify-content: space-between;
       gap: 1rem;
     }
+
+    .export-options {
+      display: none;
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      background: var(--bg-panel);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      flex-direction: column;
+      gap: 0.25rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      z-index: 1010;
+    }
+
+    .export-options.show {
+      display: flex;
+    }
+
+    .export-options button {
+      width: 100%;
+      justify-content: flex-start;
+      background: transparent;
+      padding: 0.5rem 1rem;
+    }
+
+    .export-options button:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
   </style>
   <base target="_blank">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+  <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
 </head>
 
 <body>
@@ -554,8 +586,12 @@
       <h2>✏️ Editor de Guion</h2>
       <textarea class="script-textarea" id="scriptEditor" placeholder="Escribe o pega tu guion aquí..."></textarea>
       <div class="modal-actions" style="justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-        <div style="display: flex; gap: 0.5rem;">
-          <button class="secondary" onclick="exportScript()" title="Exportar a archivo">📥 Exportar</button>
+        <div style="display: flex; gap: 0.5rem; position: relative;" class="dropdown">
+          <button class="secondary" onclick="toggleExportOptions()" title="Exportar a archivo">📥 Exportar</button>
+          <div id="exportOptions" class="export-options">
+            <button onclick="exportScript('txt')">📄 Formato .txt</button>
+            <button onclick="exportScript('docx')">📘 Formato .docx</button>
+          </div>
           <button class="secondary" onclick="triggerFileImport()" title="Importar desde archivo">📤 Importar</button>
           <button class="danger" onclick="clearScript()" title="Borrar todo el texto" style="padding: 0.6rem;">🗑️
             Borrar Todo</button>
@@ -644,17 +680,43 @@
     }
 
     // Export to file
-    function exportScript() {
+    function toggleExportOptions() {
+      document.getElementById('exportOptions').classList.toggle('show');
+    }
+
+    async function exportScript(format = 'txt') {
       const text = scriptDisplay.innerText;
-      const blob = new Blob([text], { type: 'text/plain' });
+      let blob, fileName;
+
+      if (format === 'docx') {
+        const { Document, Packer, Paragraph, TextRun } = docx;
+        const doc = new Document({
+          sections: [{
+            properties: {},
+            children: text.split('\n').map(line => new Paragraph({
+              children: [new TextRun(line)],
+            })),
+          }],
+        });
+
+        blob = await Packer.toBlob(doc);
+        fileName = 'guion_telepromter.docx';
+      } else {
+        blob = new Blob([text], { type: 'text/plain' });
+        fileName = 'guion_telepromter.txt';
+      }
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'guion_telepromter.txt';
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      // Close dropdown if open
+      document.getElementById('exportOptions').classList.remove('show');
     }
 
     function triggerFileImport() {
@@ -719,6 +781,7 @@
 
     // Close dropdown when clicking outside
     window.onclick = function (event) {
+      // Close settings dropdown
       if (!event.target.matches('.secondary') && !event.target.closest('.dropdown-content')) {
         const dropdowns = document.getElementsByClassName("dropdown-content");
         for (let i = 0; i < dropdowns.length; i++) {
@@ -727,6 +790,10 @@
             openDropdown.classList.remove('show');
           }
         }
+      }
+      // Close export options
+      if (!event.target.closest('.dropdown') && !event.target.closest('.export-options')) {
+        document.getElementById('exportOptions').classList.remove('show');
       }
     }
 
